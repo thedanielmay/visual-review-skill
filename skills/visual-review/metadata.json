@@ -1,0 +1,6 @@
+{
+  "version": "1.0.0",
+  "organization": "Document QA",
+  "date": "May 2026",
+  "abstract": "Two-mode (Quick Pass / Full Review) visual inspection skill. Renders PDFs and HTML, produces action-first reports (HOLD/FIX IF TIME/NOTE), detects clipping, overlaps, font fallback, density imbalance, and brand drift. Includes type-specific checks for slides, books, and reports."
+}
