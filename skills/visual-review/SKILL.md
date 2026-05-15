@@ -107,6 +107,36 @@ Quick Pass skips Phases 4, 5, 6, and 7. Quick Pass report omits the CROSS-PAGE D
 
 Commit the mode and render-method to the report header before proceeding.
 
+**HTML source overflow pre-flight (mandatory when HTML source is available)**
+
+If the input includes an HTML source file with fixed-height pages (any page using `height: 210mm`, `height: 794px`, or `overflow: hidden` in print CSS), run the Playwright overflow audit BEFORE exporting to PDF:
+
+```js
+// Serve the HTML via local HTTP server first if file:// is blocked
+// python3 -m http.server 7823 --directory <project-root>
+
+await page.goto('http://localhost:7823/<path-to-html>');
+const overflowReport = await page.evaluate(() => {
+  const results = [];
+  document.querySelectorAll('section.page, .page, [class*="page"]').forEach((page, i) => {
+    const overflow = page.scrollHeight - page.clientHeight;
+    const label = page.getAttribute('data-screen-label') || page.id || `Element ${i+1}`;
+    const isLongForm = page.classList.contains('page--long-form') || 
+                       page.classList.contains('long-form');
+    if (overflow > 2 && !isLongForm) {
+      results.push({ index: i+1, label, overflowPx: overflow });
+    }
+  });
+  return results;
+});
+```
+
+**Every page with `overflowPx > 0` is a guaranteed HOLD finding** — content will be silently clipped in the PDF. Do not proceed to PDF export without resolving or explicitly noting all overflow findings.
+
+Pages within 10px of the boundary (0 < overflowPx ≤ 10) should also be checked visually in the PDF — Chrome's print rendering can clip content that appears to fit in screen mode due to rounding differences.
+
+Note: `page--long-form` pages are excluded from this check because they intentionally overflow in screen mode and use `height: auto` in `@media print`.
+
 ### Phase 1 — Identify input
 
 Ask yourself (and the user if unclear):
@@ -122,13 +152,33 @@ If any of this is ambiguous, ask one short clarifying question. Do not guess —
 
 **For PDFs**, use `pdftoppm` (poppler) — most accurate renderer, matches Adobe/Chrome:
 ```bash
-pdftoppm -png -r 200 input.pdf output_dir/page
+pdftoppm -png -r 300 input.pdf output_dir/page
 pdfinfo input.pdf > output_dir/metadata.txt
 pdffonts input.pdf >> output_dir/metadata.txt
 ```
 This produces `page-NN.png` (one per page) plus a metadata file with page dimensions, fonts (and whether they're embedded), page count.
 
-**Render at 200 DPI minimum** — never 130, never 150. Below 200 DPI, a 1-4px horizontal rule cutting through 16-20px body text is visually compressed enough that an agent can mistake it for "card boundary, intentional design" rather than "rule overprinting glyph". The cost of higher-DPI rendering is a few extra MB of disk; the cost of missing a thin-rule collision is shipping a broken page.
+**Render DPI requirement: 300 DPI — this is non-negotiable.**
+
+Previous reviews at 200 DPI missed:
+- Orphan `border-top` rules (~1–2px) appearing below the header gap on continuation pages — reads as a density artefact at 200 DPI, only clearly visible at 300 DPI
+- Footer overprint — body text's last line sitting on top of footer text; two similarly-weighted layers merge visually at 200 DPI
+- Callout boxes with clipped bottom borders (border reads as "page edge" at low DPI)
+- Mid-sentence text endings (short last lines look natural at low resolution)
+- Missing column content (absent right column reads as intentional whitespace)
+
+Always use `-r 300` with pdftoppm. Never 130, never 150, never 200. The disk cost (≈2× over 200 DPI) is trivial; the cost of a missed finding is shipping broken pages.
+
+**Zone-crop checks (mandatory — full-page view is insufficient).**
+
+Reading each page at full A4 fit-to-screen scale misses defects that are only 1–4px at render resolution. After the full-page pass, perform explicit zone checks by mentally (or literally) cropping and examining these areas on every page:
+
+1. **Top 15mm of content area** — look for any horizontal rule that is NOT the header rule. A second thin rule here is an orphan `border-top` from a fragmented CSS element. Easy to dismiss as image compression noise at full-page scale.
+2. **Bottom 10mm of content area** — look for body text whose last line sits in the same horizontal band as the footer text. Footer overprint is subtle at full-page scale because the two text layers are similar weight and colour.
+3. **Column gutter** — on two-column pages, check that both columns have content and that the gutter is consistent. An empty right column can read as intentional whitespace at small scale.
+4. **Any page containing a table or rule-heavy layout** — zoom into each rule and confirm it does not overprint glyph baselines above or below it.
+
+These are not optional spot-checks — they are mandatory for every page in the sweep.
 
 **For HTML**, use Playwright + Chromium — same engine the document would render in for users:
 ```bash
@@ -192,6 +242,134 @@ HOLD findings deserve the most rigorous evidence. NOTE findings can be a one-lin
 These are nearly always `confident` findings. If you see them, they are real.
 
 - **Content clipped at page edge** (bottom, right, anywhere). The page boundary cuts through text, an image, or a UI element. **No exceptions, no "intentional framing" rationalisation.** Any visible text or graphic element that is partially cut off at any page edge is a ship-blocker. Reframing it as a deliberate design choice is the trap; the reader sees a broken page.
+
+**Bottom-edge completion check (mandatory on every fixed-height page).**
+
+For each fixed-height page (any page that uses `height: 210mm` or `overflow: hidden`), perform these explicit checks on the bottom 25% of the page:
+
+1. **Sentence-completion test.** Does the last visible sentence end with terminal punctuation (`.`, `?`, `!`, `:`, or a complete parenthetical)? A sentence ending mid-word, mid-clause, or without punctuation is a HOLD finding. Do NOT rationalise it as a "natural paragraph break" — if there is no period, the content is clipped.
+
+2. **Box/callout border-completion test.** If the bottom visible element is a box, card, callout, or table: does it have a visible bottom border or a clear visual close? A box whose bottom border is missing or runs off the page edge is a HOLD finding. The absence of a bottom border is not a design choice on pages using bordered cards — it is clipping.
+
+3. **Column-completion test.** If the page uses a two-column layout: does the right column contain content? An entirely empty right column on a two-column layout page is a HOLD finding. **Exception scope is narrow:** the exception for "a cover or section opener" applies ONLY when the page uses a structurally single-column layout (no `grid-template-columns: 1fr 1fr` or equivalent). A cover page that uses a two-column grid where one column contains elements at opacity < 0.15 (near-invisible decorative bars, faint motifs) is NOT exempt — those elements are invisible in print and do not constitute "cover design." Flag as Tier 2 on a cover page, Tier 1 on a body page. Do not accept an empty right column as "whitespace breathing room."
+
+4. **Footer-visibility test.** Is the page footer (page number, document title) visible at the page bottom? A missing footer on a body page is a HOLD finding.
+
+5. **Footer content clearance test** (mandatory on every body page with a footer). Does the body content complete cleanly ABOVE the footer zone, or does it appear to be cut off by the footer strip? Check the last 10% of page height for content that ends abruptly (no terminal punctuation, no visual close, sentence trailing off). If content appears to be clipped by the footer zone — text running into the footer area or being hidden behind it — this is a HOLD finding. **Root cause pattern:** `max-height` set to the full page height (e.g. 170mm on an A4 landscape page) without subtracting the footer strip height (~8mm). Content fills to 170mm but the footer occupies the bottom 8mm, silently clipping the last line(s). **Detection:** look at the gap between the last visible content element and the footer rule line. If there is no visible gap (content appears to touch or overlap the footer), it is clipping. **Fix:** reduce `max-height` to leave footer clearance (e.g. 162mm instead of 170mm), or increase `margin-bottom` in the `@page` rule to give the footer margin box more room.
+
+6. **Header content clearance test** (mandatory on every body page with a running header). Is there a visible breathing gap between the bottom of the running header rule line and the first line of body content below it? Content that starts immediately adjacent to the rule makes the page feel cramped and is a **Tier 2 finding (FIX IF TIME)** — promote to HOLD on client-facing documents.
+
+   **The calibration test (ask this explicitly):** Could you slide a finger between the header rule and the first content element and feel space? If the eyebrow or heading appears to be growing directly out of the rule line, it is too tight — regardless of whether the content is technically unclipped.
+
+   **What to look at:** There are two separate text elements near the header rule — one above it (the running header text, e.g. "Section 01 · Introduction · May 2026") and one below it (the first body content, e.g. "SECTION 01 · INTRODUCTION"). The clearance finding is exclusively about the gap BELOW the rule, between the rule and the first body content. The running header text above the rule is expected to sit close to it — that is correct behaviour, not a finding.
+
+   **Root cause and correct fix (Paged.js / pagedjs-cli):** The gap below the rule is NOT controlled by `@page margin-top`. That property sizes the entire top margin box (logo + rule + space above logo). Increasing it adds space above the logo, not below the rule. The correct fix is `padding-top` on the Paged.js content area itself — applied universally so it covers ALL page types including mid-flow continuations.
+
+   **The three failure cases — all require the same fix:**
+   - Fixed-height pages (`.page` class with `.page-body` wrapper): the `.page-body` element sits flush at the top of the content area.
+   - Flowing section openers (`section-start` without `.page`): the section element's first child sits flush.
+   - **Continuation pages of flowing sections** (e.g. `doc-q-section` or `prose-grid` breaking mid-flow): the content fragment that Paged.js places on the new page has no top padding — the element's own `padding-top` was consumed at its opening on the previous page. This is the most commonly missed case.
+
+   **The universal fix (Paged.js):** Apply `padding-top: 6mm` to `.pagedjs_page_content` for all non-cover pages. This operates at the content-area level — whatever fragment Paged.js places there (section opener, continuation paragraph, table row) automatically gets the clearance:
+   ```css
+   .pagedjs_page:not(:has(.page--cover)) .pagedjs_page_content {
+     padding-top: 6mm;
+   }
+   ```
+   With this rule in place, do NOT also set `padding-top` on `.page-body` or `.section-start:not(.page)` — those would double-stack to 12mm.
+
+   **Audit scope:** check header clearance on ALL body pages — not just section openers. Mid-flow continuation pages (pages that begin with a sentence fragment mid-paragraph, or a sub-section heading mid-document) are equally at risk and historically missed because reviewers focus on the start of each section.
+
+   **Do not touch:** `@top-left` / `@top-right` `padding-bottom` — this moves the running header text down inside the margin box (the wrong gap). `@page margin-top` — this moves the logo up/down, not content below the rule.
+
+   **When the universal `.pagedjs_page_content` fix is applied:** the `.page max-height` must account for the added padding. Formula: `max-height = page-height − margin-top − margin-bottom − padding-top`. For A4 landscape with 28mm top margin, 22mm bottom margin, 6mm padding: `max-height = 210 − 28 − 22 − 6 = 154mm`.
+
+   **Upper-bound check — excessive header gap (mandatory on every section opener).** The clearance below the header rule must also not be disproportionately larger than sibling pages. If one page's eyebrow appears to "float" in a large empty zone below the rule while all other section openers have a compact, consistent gap, this is a **Tier 2 (FIX IF TIME)** finding — promote to HOLD on client-facing documents.
+
+   **Detection:** compare the rule-to-eyebrow distance on the flagged page against at least two structural siblings. If the gap is visually ~2× or more than the sibling gap, flag it. Do NOT accept "it's still readable" — excessive gap reads as layout drift and signals a structural error.
+
+   **Root cause (Paged.js):** A flowing `section-start` section (without `.page`) that also contains a `.page-body` child div will accumulate two independent `padding-top` values:
+   - `.section-start:not(.page) { padding-top: 6mm }` — on the section container
+   - `.page-body { padding-top: 6mm !important }` — on the child wrapper
+
+   This doubles the gap to ~12mm. **The `.page-body` class must not appear inside a flowing `section-start`** — it belongs only inside `.page` (fixed-height) sections. Fix: remove the `.page-body` wrapper div from the flowing section, leaving only the content stack directly inside the `section-start` element.
+
+   **Structural pre-flight (mandatory when HTML source is available):** Before or immediately after Phase 2 rendering, grep the source for this class-mixing anti-pattern:
+   ```bash
+   # Detect section-start sections (without .page) that contain a .page-body child
+   grep -n "section-start\|page-body" index.html | grep -v "page section-start"
+   # Look for a .page-body line immediately following a non-fixed section-start line
+   ```
+   Any `<div class="page-body">` that is a direct child of a `section-start` (without `.page`) is a structural error — it will double the header clearance gap and must be removed.
+
+   **Anti-rationalisation:** "The eyebrow is still legible" is not the same as "there is adequate breathing room." Perform this as a discrete yes/no question on the first body page, then spot-check three more. Do not absorb it into the general visual pass.
+
+7. **Major section opener page-break test** (mandatory on every page that ends with — or begins within the bottom 30% of — a section heading, eyebrow + H1, or numbered section title). Does a major section opener (a new top-level numbered section: "Section 05", "Chapter 3", "Part II", etc.) start on a fresh page? A major section heading appearing in the bottom 30% of any page is a **HOLD finding** — it signals a missing `break-before: page` on the section wrapper.
+
+   **What to look for:** On any page where the last visible element is a heading, eyebrow label, or section title — or where an eyebrow + H1 + lead paragraph group begins below the midpoint of the page — ask: "Is this a new top-level numbered section?" If yes, it should be on a fresh page. The presence of body content before the heading on the same page is the tell: if the page starts mid-content and ends with a heading, the break is missing.
+
+   **The failure mode that hides this:** The review focusses on the *following* page (which appears clean — content starting at the top). The *previous* page, which ends with the orphaned heading, reads as "content then whitespace then heading" — superficially similar to an intended design choice. It is not a design choice. A major section opener at the bottom of a page is always a structural break failure.
+
+   **Root cause (Paged.js / pagedjs-cli):** The section wrapper is using a class like `doc-q-section` or a generic `<section>` with no `break-before: page`. The `doc-q-section` class is designed for Q-level *sub-sections within a running section* — it has `border-top` and `margin-top` but no page break. If it is applied to a *top-level numbered section*, the class is wrong. The `break-before: avoid-page` on `.doc-title` / `.doc-eyebrow` compounds the issue — it tells Paged.js "don't break just before this heading," which pulls the heading down into whatever space remains on the previous page.
+
+   **Fix:** Change the wrapper class from `doc-q-section` (or any non-breaking class) to `section-start`, which has `break-before: page`. Check that any styling provided by `doc-q-section` (border-top, margin-top) is no longer needed once the section gets a fresh page — it usually isn't.
+
+   **Source audit (mandatory when HTML source is available):** After identifying a misplaced section heading visually, grep the HTML for every top-level numbered section (`Section \d\d`, `Chapter`, `Part`, or equivalents). For each, check the wrapper element's class list — it must include `section-start` (or equivalent `break-before: page` class). Any top-level section using `doc-q-section`, plain `<section>`, or a class with no `break-before: page` is a latent bug even if it hasn't yet produced a visible orphan.
+
+   **Anti-rationalisation:** "The heading is still on the page and readable" is not a defence. A major section opener at the bottom of a page destroys the reader's navigation experience — they can't glance at a fresh page to know they're entering a new section. Promote this to HOLD regardless of how readable the heading appears.
+
+   **Continuation-page orphan border check (mandatory on every page that begins mid-flow).** For any continuation page (a page that starts mid-sentence or mid-section rather than at a clean section opener), ask: is there a thin horizontal rule in the top 15mm of the content area, below the header rule gap?
+
+   **CRITICAL: this defect is only ~1–2px thick and sits close to the header. At full-page zoom it reads as a subtle density artefact and is easy to dismiss. You MUST mentally zoom into the top 15mm of every continuation page — look for any horizontal line that is not the header rule itself.**
+
+   If a second thin rule is present: this is a `border-top` from a CSS block element (e.g. `doc-q-section`) repeating on the fragment's continuation page. It is NOT an intentional separator — it reads as a visual glitch.
+
+   **Detection:** A thin rule sitting in the gap between the header rule and the first body text, with no eyebrow/label between the rule and the body text. Structure: [header rule] → [6mm gap] → [orphan rule ← THIS] → [body text]. A legitimate Q-section separator always has the separator above an eyebrow label and heading; an orphan border appears above body text with no label.
+
+   **Why `box-decoration-break: slice` is NOT a reliable fix:** Chromium's print renderer does not honour `box-decoration-break: slice` on fragmented block elements in Paged.js documents. It re-paints `border-top` on every continuation fragment regardless. Do not apply this as a fix — it will appear to work in browser preview but fail in the rendered PDF.
+
+   **Correct fix — use a real DOM element as the separator:** Remove `border-top` and `padding-top` from the CSS of the fragmented element entirely. Replace with a `<hr class="doc-q-separator">` element as the first child of each section that needs a visible separator. Style the `<hr>` with `border-top` and `margin`. Add `break-after: avoid` to keep it glued to the heading that follows. Since `<hr>` is a real DOM node, it only appears where it exists in the source — it cannot duplicate onto continuation pages.
+
+   ```css
+   .doc-q-section { margin-top: 0; padding-top: 0; /* no border-top */ }
+   .doc-q-separator { border: none; border-top: 1px solid var(--border-subtle); margin: 32px 0 24px 0; break-after: avoid; }
+   ```
+
+   Note: the first Q-section in each section (Q1, Open Q1, etc.) does NOT get a `<hr>` — it follows directly from the section opener. Only Q2+ (and equivalent) get separators.
+
+   **Source smell:** any element with both `border-top` and no `break-inside: avoid` in a Paged.js document is a candidate for this bug — Chromium will re-paint the border on every continuation fragment page.
+
+8. **Flowing section footer collision test** (mandatory on every page whose content comes from a `section-start` without `.page`, i.e. a flowing section). Does the last visible element on the page clear the footer rule with visible breathing room? Any element — a heading, eyebrow label, sentence fragment, or Q-section heading — that visually overlaps or sits inside the footer margin band is a **HOLD finding**.
+
+   **This is distinct from the fixed-height footer clearance test (check 5).** Fixed-height pages clip silently via `max-height + overflow: hidden`. Flowing sections have no `max-height` — Paged.js is responsible for the page break. When it fails to break in time, content overruns the footer band visibly: the last element is legible but physically inside the footer strip, overprinting the footer text.
+
+   **The failure mode that hides this:** The content appears "almost on the page" — the heading or label is readable and doesn't look clipped, just close to the bottom. The eye rationalises it as "tight but intentional." It is not. Any body element that sits in the same vertical zone as the footer rule is in the footer margin band — which belongs to Paged.js, not to body content.
+
+   **Detection:** on any page with a flowing section, look at the bottom 8–10% of the page height. Is there a content element (heading, eyebrow, sentence) below the last clear body content gap, sitting immediately above or overlapping the footer text? If yes, it is a footer collision. The tell is seeing the document footer text ("SAFELEDGER · ANALYTICAL DOCUMENT V7 · CONSOLIDATED RECORD") and a body element on the same or adjacent horizontal band.
+
+   **Root cause (Paged.js):** A `section-start` element contains more content than fits on one page, AND the first sibling section has no `break-before: page`. Paged.js flows the sibling's heading into the remaining space at the bottom of the page — which is inside the footer margin band. Two structural fixes exist:
+   - **Preferred:** Convert the self-contained intro page to `.page section-start` with `.page-body` wrapper — this gives it `max-height: 154mm` which clips at the right boundary and forces the next section to a fresh page.
+   - **Alternative:** Add the `section-start` class to the overflowing section — this is the only reliably honoured `break-before: page` mechanism in Paged.js/Chromium. **Do NOT use inline `style="break-before: page"` or a CSS rule on a non-`section-start` element** — Chromium's print renderer ignores `break-before` on arbitrary block elements that lack the `section-start` class. This has been confirmed in practice: inline style `break-before: page` on a `doc-q-section` was silently ignored; adding `section-start` to the class list worked immediately.
+
+   **Paired finding — sparse following page.** When a flowing section overruns into the footer, the content that was forced to the next page will often produce a sparse page (large bottom whitespace). A page that is notably sparse directly after a footer-collision page is diagnostic confirmation of the overflow, not a separate finding. Surface both together in the report.
+
+   **Source audit (when HTML source is available):** For every `section-start` without `.page` that contains both a heading block AND a `prose-grid` or table: confirm whether the following sibling section has `break-before: page`. If not, the overflow risk is latent — it will produce a footer collision whenever the content fills more than one page. Flag as a latent HOLD even if the current render happens to fit.
+
+These eight checks must be explicitly performed and answered (yes/no) for every body page. Do not treat any of them as optional or implied by the general "content clipped" check — that check has historically been too abstract to catch these specific failure modes.
+
+**Confidence: `confident`** — all eight are binary observable checks. If you cannot determine the answer from the render, increase DPI to 300 and re-render before proceeding.
+
+**Table and list completeness check (mandatory on every fixed-height page containing a table or list).**
+
+For each fixed-height page containing a `<table>`, `<ol>`, or `<ul>`:
+
+1. Count the rows/items in the HTML source for that element.
+2. Count the rows/items visible in the PDF render.
+3. If the counts differ: this is a **HOLD** finding — "Table has N rows in source but only M visible in PDF; rows [list] are clipped." Do NOT classify this as a density-imbalance finding. It is a content-integrity finding.
+4. The fix is always to split the page — never to reduce font size to make more rows fit (that degrades legibility) and never to scale up (that makes clipping worse).
+
+**Confidence: `confident`** — row counts are deterministic. Count the `<tr>` or `<li>` elements in source; count visible rows in the render; compare.
+
 - **Text overrunning its container.** A fixed-width box where content visually escapes the box.
 - **Missing or broken images.** Logo not loading, alt text showing instead of an image, broken-image icon.
 - **Overlapping elements.** Footer over body. Header over title. Two columns colliding. A modal/badge over content. **Bounding-box overlap test:** when reviewing each page, explicitly ask "do any two text blocks have intersecting bounding boxes? Does any text element overlap with a non-text decorative element (rule line, image, panel fill)?" If yes, Tier 1. Don't rely on global gestalt alone — corner-zone collisions are easy to miss when your eye is reading the centre of the page.
@@ -201,12 +379,37 @@ These are nearly always `confident` findings. If you see them, they are real.
 - **Corner-zone clipping or collision.** On any landscape spread (1920×1080 or similar), explicitly inspect each of the four corner zones — top-left, top-right, bottom-left, bottom-right — as a separate checklist step. Specifically: is there text in a corner that is being obscured, clipped, or overlapped by an absolutely-positioned element from an adjacent column? Top-right is the most-missed zone because the eye reads left-to-right and tires before reaching it. Multi-column layouts with absolute positioning routinely collide at the inside-corner where columns meet — flag any such collision as Tier 1.
 - **Off-page elements.** Anything positioned outside the visible page area.
 - **Header/footer collision.** Rule lines, page numbers, or running titles landing on body content.
+- **Long-form section continuation pages — missing header or footer (Tier 1).** For any `page--long-form` section that spans multiple PDF pages: every PDF page (not just the first and last) must have a running header (logo + section label) and a running footer (document title + section label). A mid-flow PDF page with no header is Tier 1. A footer appearing mid-page in the flow rather than anchored to the page bottom is Tier 1. **Root cause:** `position: absolute` headers/footers only anchor correctly inside a fixed-height container. When a section has `height: auto` and flows across multiple print pages, the header appears only on the first PDF page and the footer only on the last. **Detection:** in the PDF render, check every continuation page of a long-form section — not just the first page. If the logo/section label is absent from the top, or the footer text is absent from the bottom, this is a Tier 1 finding. **Fix:** the only reliable solution with Chrome/Puppeteer is to split each long-form section into explicit fixed-height `<section class="page">` elements, each with its own `<header class="page-head">` and `<footer class="page-foot">`. `position: fixed` in print mode does not work correctly — Chrome stamps the last fixed element on all pages. CSS `@page` running elements (`element()` function) are not supported in Chrome. **BEYOND VISUAL note:** if the renderer is Chrome/Puppeteer and the document has long-form flowing sections, flag this as a structural infrastructure finding — proper running headers/footers require either section splitting in HTML or switching to a CSS-capable renderer (Prince, WeasyPrint, Paged.js).
+- **Long-form body text using narrow single-column width — right margin wasted (Tier 2).** Long-form sections using `max-width: Nch` on body paragraphs leave a dead right margin that reads as whitespace but contains no content. On A4 landscape or portrait documents, single-column text narrower than ~75% of the content area is a Tier 2 density finding. **Detection:** look for a consistent right-side gap of >25% page width in any long-form section. **Fix:** switch to two-column layout using CSS `columns: 2; column-gap: 28px` on the `.page-body`, or use `doc-cols-2` wrapper divs for sections where explicit column control is needed. Note: `columns` CSS does not work with `display: flex` — set `display: block` on the container first.
 - **Backgrounds not filling the page.** Cream/navy/branded background failing to reach the edge — paper/white showing through where it shouldn't.
+  - **Paged.js / pagedjs-cli specific — content-area-only background (Tier 2, FIX IF TIME).** In Paged.js, each HTML `<section class="page">` element is placed inside `.pagedjs_page_content` — the rectangle between the `@page` margin boxes (header band and footer band). If a page's background colour is applied in CSS to `.page--cover`, `.page--section-break`, or any `section.page` selector, that colour fills only the content-area rectangle. The header and footer margin bands stay white, producing a coloured rectangle floating inside white strips. **Detection:** on any page with a non-white background, look for a colour step at the top and bottom edges of the content area — if the margin bands are a different colour (typically white) from the content body, this is the bug. At low DPI this reads as a subtle warm/cool boundary; at 300 DPI it is clearly a seam. **The failure mode is invisible in browser screen preview** (no Paged.js margin boxes in screen mode) and only appears in the PDF. **Fix:** in `documents-paged.css`, add a rule that targets the full `pagedjs_page` element for pages with special backgrounds — not the `section.page` element inside it. Use Paged.js's `:has()` targeting pattern:
+    ```css
+    /* Background must fill the whole page — not just the content area */
+    .pagedjs_page:has(.page--cover) {
+      background: var(--cream-50) !important;
+    }
+    .pagedjs_page:has(.page--section-break) {
+      background: var(--ink-800) !important;
+    }
+    ```
+    This mirrors the existing pattern used to suppress margin-box display on cover pages. Apply the same `background` value that `documents.css` sets on `.page--cover` / `.page--section-break`, so the full page (margin bands included) matches. **Root cause to note in source:** the CSS rule `.page--cover { background: var(--cream-50) }` in `documents.css` is correct for screen/browser preview but incorrect for Paged.js PDF output — it only colours the content area. The Paged.js fix must target the parent `.pagedjs_page` wrapper.
+    **Anti-rationalisation:** at thumbnail scale (200 DPI fit-to-page) the seam between content-area cream and margin-band white may appear as a uniform warmth. Always zoom into the top and bottom 10% of any coloured page to confirm the full bleed. If the header rule appears to sit on white while the body below it is cream, the background is content-area-only.
 - **Font fallback.** A glyph rendered in a system font (Times, Helvetica, Arial) because the embedded font is missing for that character. Check `metadata.json` font list — if a font you didn't expect is used, surface it.
 - **Low-DPI raster assets.** Embedded images under ~150 DPI at print scale — they will look fuzzy. Check `metadata.json` image DPIs.
+- **Body or item text below absolute legibility floor — Tier 1 regardless of clipping.** Any body text, numbered-item text, or list content rendered at `font-size` below `10px` is a Tier 1 legibility finding, even if the content is technically present and unclipped. The failure mode: an earlier overflow-fixing pass reduces font size to fit content on the page, the overflow audit passes (no clipping), but the resulting text is unreadable at fit-to-page. Detection: scan all inline `font-size` values on body/item elements — any value below `10px` is an automatic flag. Also check `line-height` below `1.35` on any prose block — tight leading compounds the illegibility. Fix: increase font size to at least `11px` with `line-height: 1.5`, then re-run the clone overflow audit to confirm headroom. If the page genuinely cannot fit the content at legible size, split the page rather than compress the font. **Confidence: `confident`** — font size values are deterministic; sub-10px body text is never acceptable in a distributed document.
 - **Body text below the legibility threshold on landscape decks.** On any 1920×1080 (or similar landscape) deck, body text rendering effectively below ~16px at fit-to-page is Tier 1 cramped. Annotation/caption text minimum 13px. Footer / persistent navigation text minimum 13px. The trap: rationalising "it's legible at zoom" — readers don't always zoom, and "fit-to-page" is the typical reading state for projector-aimed decks. If the reader has to lean in or zoom the PDF to read body content, the size is wrong. Pair this finding with a sizing recommendation: bump body, eat any unused bottom whitespace.
+- **Figure/diagram too small to read — the "present but illegible" trap.** For every page containing an `<svg>`, `<figure>`, or embedded diagram: ask not just "is it present?" but "are its internal labels readable at the size it renders?" A diagram that passes content-clipping checks (it is not cut off) but whose box labels, annotations, or axis text are illegible at fit-to-page is a **Tier 2** finding (Tier 1 if the diagram is the primary content of the page). The failure mode: a fixed `height` override on an SVG with a wide viewBox squashes the aspect ratio — the diagram renders stamp-sized while the source code appears correct. Detection: zoom into the figure region of the PDF render to 1:1 or 2× and ask "can I read every label?". Source smell: `style="width:100%; height: Npx"` on an SVG with `viewBox="0 0 W H"` where `N/H < 0.25` — the height is less than a quarter of the viewBox ratio, indicating heavy squashing. Fix: increase the explicit `height` value until `height/H ≈ width/W` (natural aspect ratio) or until labels are clearly readable, whichever comes first. Then re-run the overflow clone audit to confirm the enlarged figure still fits the page. **Confidence: `confident`** once zoomed — label illegibility is binary at 2× zoom.
 - **Tabular / structured-list inconsistency.** Where a page contains a multi-row data layout (a table, an objection grid, an anti-pattern list, any structure with repeating rows), every row must share the same treatment: equal vertical padding, same horizontal-rule treatment (every separator present, OR none — never mixed), consistent baseline rhythm. Symptoms to watch for: some rows have a top border and others don't; gaps between rows visibly differ; one row is taller than its neighbours for no content reason; the rule colour or weight changes between rows. Inconsistent row treatment is a structural Tier 1 finding because it makes the table read as broken or half-edited. **Confident** — row-level consistency is mechanically verifiable.
 - **Step / page / count indicators that don't match the actual document.** "Step 1 of 4" on a doc that's been re-paginated to 5 pages; "Page 7 of 10" when the doc has 12 pages; "Section 3 of 4" sitting on the fifth section. The reader trusts these counts as ground truth — a mismatch is a factual error visible to the reader. Check every X-of-Y pattern against the rendered count. **Confident** — counts are deterministic.
+
+**Anti-rationalisation rule for bottom-edge findings.** The most common failure mode in visual review of fixed-height pages is rationalising a clipped bottom as intentional:
+
+- "The content ends naturally near the bottom" — check for terminal punctuation. If absent, it's clipped.
+- "The whitespace is breathing room" — check whether a column is entirely missing. If so, it's clipped.  
+- "The box design doesn't need a bottom border" — check whether sibling boxes on the same page have bottom borders. If they do, this one is clipped.
+- "The page looks clean" — this is the trap. A clipped page looks clean. That's the problem.
+
+When in doubt, promote to HOLD. The user can downgrade; a shipped broken page cannot be unshipped.
 
 #### Universal Tier 2 — Typographic problems
 
@@ -218,6 +421,7 @@ Mostly `likely` — judgment is involved on what counts as awkward.
 - **Awkward column splits in two-column lists.** Item title in column A, description in column B.
 - **Stretched or shrunk text** that doesn't match its style elsewhere — letter-spacing or font-stretch nudged.
 - **Heading hierarchy violations.** H2 looking bigger than H1, eyebrow bigger than body.
+- **Multiple logical units crammed into one paragraph block — the "bold heading mid-paragraph" smell.** When a page uses `<strong>` or bold text to introduce a new named concept mid-paragraph (e.g. "…end of Layer 1. **Layer 2 — Decision Support.** Signals surface to…"), this is a structural Tier 2 finding. The reader must visually parse the bold label as a section break — there is no whitespace or block separation to help them. The detection test: scan every `<p>` block for two or more `<strong>` or `<b>` elements that each introduce a distinct named item (Layer N, Module N, Step N, Finding N). If found, each named item should be its own `<p>` element in a `doc-stack` container, not a bold span mid-paragraph. **Source smell:** `<p>...<strong>Layer 1</strong>...body...<strong>Layer 2</strong>...body...</p>` — one `<p>` containing two or more conceptually distinct bold-labelled sections. **Fix:** split into separate `<p>` elements wrapped in a `doc-stack-3` or `doc-stack-4` div so paragraph spacing provides the visual separation. Re-run the overflow clone audit after splitting — the added spacing will consume headroom. **Confidence: `confident`** — bold-label counting in source is deterministic; the visual impact is immediately legible at 1:1 zoom.
 
 #### Universal Tier 2 — Form & interactive-element semantics
 
@@ -263,6 +467,36 @@ Operational rule:
 4. **Flag any page whose bottom gap is less than half the median as `cramping` — Tier 2.** This is the inverse finding and matters even more, because cramped pages tire the reader.
 5. Surface BOTH directions in the report. The fix is usually "redistribute content from cramped pages into spacious ones" or "increase row spacing on cramped pages until the bottom gaps even out."
 
+**Sparse page diagnosis — falsely sparse vs genuinely sparse (critical distinction).**
+
+Before treating a sparse page as "needs more content or larger text," diagnose WHY it appears sparse:
+
+**Step 1 — Count source rows vs visible rows for any table or list.**
+If the page contains a table or numbered list, count the rows/items in the HTML source and compare to the rows/items visible in the PDF render. If the counts differ, the page is **falsely sparse** — content is there but clipped by `overflow: hidden`. Scaling up font/padding will make clipping worse. The correct fix is to **split the page**.
+
+**Step 2 — Apply the Playwright overflow check.**
+Run `scrollHeight > clientHeight` on the page element. Any positive overflow confirms falsely sparse — do not scale up.
+
+**Step 3 — Only scale up if genuinely sparse.**
+If source row count matches visible row count AND overflow check is zero: the page is genuinely sparse. Scaling up font sizes, increasing row padding, or increasing stack gaps is the correct fix.
+
+**Decision tree:**
+```
+Sparse page detected
+    ↓
+Count source rows vs visible rows in PDF
+    ↓
+Counts differ? → FALSELY SPARSE → Split page (add continuation page)
+    ↓
+Counts match? → Run scrollHeight > clientHeight
+    ↓
+Overflow > 0? → FALSELY SPARSE → Split page
+    ↓
+Overflow = 0? → GENUINELY SPARSE → Scale up font/padding/gaps
+```
+
+**Never scale up on a falsely-sparse page.** This is the most common mistake: the page looks sparse, you increase font size, the visible rows look better, but more rows are now hidden below the clip boundary. The page still clips — it just clips at a different row. The reader still loses content.
+
 This finding is **always actionable**, even when the skill itself can't apply the fix (CSS is the user's). When you can't apply the fix, **say so loudly** — don't bury it. The user reading the report should leave knowing "page 2 is cramped, page 1 has room to give, here's what to redistribute."
 
 Do NOT downgrade this to Tier 3 just because no single page looks broken. The whole-document feeling of "rushed in places, sparse in others" is exactly the visual-quality outcome the skill exists to flag.
@@ -282,6 +516,21 @@ Mostly `likely` or `possible`. Compare against sibling pages.
 - **Rule lines** at inconsistent widths or positions across pages.
 - **Footer/page-number alignment** drift across pages.
 - **Logo size or position drift** between pages.
+- **Header-to-body gap inconsistency across pages.** If the clearance between the running header and first body content visibly differs between pages — tighter on some pages, more open on others — flag as a layout-rhythm finding. Source smell: pages that use different first content elements (an eyebrow label vs a section heading vs a paragraph) with different top margins, while the header has a fixed height. Fix: standardise the top-of-body margin on all page content containers, not on the individual elements.
+- **Heading-structure internal spacing drift across sibling pages.** When two or more pages share the same structural template (eyebrow → H1 → intro paragraph, or eyebrow → H1 → lead → body), the vertical gaps between those elements must be visually consistent. If one page's eyebrow-to-H1 gap or H1-to-intro gap looks tighter or looser than its siblings, this is a **Tier 2** finding — the page reads as lower production quality even when no content is clipped. **Detection:** identify a group of sibling pages (same section, same layout template) and compare the vertical rhythm in the top 20% of each page. A gap that is noticeably smaller on one page but not others is the finding. **Source smell:** the outer flex stack uses a different `doc-stack-N` class (different gap value) than sibling pages — e.g. `doc-stack-3` (12px gap) on one page vs `doc-stack-4` (16px gap) on all others. The fix is always to match the class to the sibling. **This is a cross-page comparison finding — it cannot be caught by inspecting a page in isolation.** You must explicitly compare each page's top-block spacing against at least two sibling pages before declaring it consistent.
+
+#### Cover / title page checks (P1/P2)
+
+Apply these checks whenever page 1 is a cover or title page. They are scoped to page 1 (or whichever page carries the cover treatment) and do not apply to body pages.
+
+- **Cross-page background consistency** (P1 — `likely` to `confident`)
+  Does page 1 (cover/title) have a noticeably different background colour from body pages? If yes, flag it — it may be intentional (full-bleed cover treatment) or a bug (`page--cover` CSS class applying a different colour token). Check the HTML for a `.page--cover` class and confirm whether the colour difference is by design. If no `.page--cover` class or explicit design note explains the difference, treat as a `likely` FIX-IF-TIME finding and surface it for the user to confirm. Source smell: a generic `.page` background token accidentally applying to the cover when the body uses a different token (or vice versa).
+
+- **Cover page content utilisation** (P1 — `likely`)
+  On the cover/title page, does the right half (or any large zone) of the page appear largely empty or contain only faint decorative elements (opacity < 10%, or a near-invisible motif)? A cover page should use its full width meaningfully — either extend content across the full width, or carry a designed visual element (illustration, data motif, branded graphic) that fills the space intentionally. **Flag any cover where more than 40% of the page area is blank or sub-10%-opacity decorative content.** This is not the same as "breathing room" — a body page with modest margins is fine; a cover with a half-page blank zone reads as unfinished. Suggested fixes: extend typography or tagline across the full width; add a designed full-bleed image or motif to the empty zone; or adopt a full-width single-column layout instead of splitting the cover into columns.
+
+- **Cover page grid vs full-width treatment** (P2 — `possible`)
+  Does the cover page use the same two-column `doc-cols-rail` or `1fr 1fr` grid as body pages? Cover/title pages should typically break from body layout conventions and use full-width composition. A cover constrained to a body grid layout often looks like a body page with a large title — not a designed cover. Flag if the cover is using the standard body column grid with no override. This is a `possible` finding (not every project will want a full-bleed cover), but it should be surfaced so the user can confirm the grid was a deliberate choice rather than an inherited default.
 
 ---
 
@@ -302,6 +551,9 @@ Measurements to collect across all pages and surface as drift if they vary unexp
 - Margin starts (left, right, top of body)
 - Eyebrow style presence/absence
 - Rule line colour, width, position
+- **Heading block internal gap rhythm.** For every page using an eyebrow → H1 → intro/lead structure, compare the visual gap between (a) eyebrow and H1, and (b) H1 and intro paragraph, against at least two sibling pages with the same structure. A page whose gaps are noticeably tighter or looser is a Tier 2 finding. Source: check the `doc-stack-N` class on the outer wrapper div — `N` encodes the gap (stack-3 = 12px, stack-4 = 16px, stack-5 = 20px). All sibling pages should use the same N. **This check must be done as a batch comparison across the group, not page-by-page in isolation.**
+
+- **Header-clearance gap calibration across section openers (upper and lower bound).** For every section opener page, compare the visual distance between the header rule and the first body element (eyebrow or heading) against at least two structural siblings. Both bounds matter: (a) lower — gap must exist (not flush), and (b) upper — gap must not be disproportionately larger than siblings (~2× or more). A page that looks "floaty" compared to its siblings has an excessive gap — flag as Tier 2. **Source smell:** a flowing `section-start` (without `.page`) containing a `.page-body` child — this causes padding-top to double-accumulate (section container + page-body wrapper). The batch comparison is mandatory; the excessive-gap pattern is only visible relative to siblings, not in isolation.
 
 Use `references/confidence-rubric.md` to decide whether drift is "intentional variation" or "accidental drift." If a page is structurally different (title slide, section divider), don't flag it for not matching body pages.
 
@@ -352,7 +604,7 @@ Structure the report around what the user needs to do, not what category the fin
 # Visual Review — <document name>
 
 **Rendered:** <timestamp>, <page count> pages
-**Render method:** [pdftoppm 200 DPI | Playwright/Chromium | text-only (non-visual)]
+**Render method:** [pdftoppm 300 DPI | Playwright/Chromium | text-only (non-visual)]
 **Mode:** [Quick Pass | Full Review]
 **Source:** [editable at <path> | read-only | not provided]
 **Context declared:** [Client-facing | Internal draft | Print production | not declared]
