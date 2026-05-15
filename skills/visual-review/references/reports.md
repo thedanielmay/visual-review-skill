@@ -39,7 +39,7 @@ Reports rarely use bleed (no edge-to-edge ink), so bleed/safe-area is not a Tier
 - **Sidebar/callout consistency.** If the document uses sidebars or pull-out callouts, they should all be styled consistently and positioned consistently.
 - **Image scaling consistency.** Images should fit a small number of standard sizes (e.g. half-width, full-width, full-bleed). Random scaling looks amateur.
 - **Table styling consistency.** All tables use the same header style, same row banding (or none), same border treatment.
-- **Column gap consistency.** If the document uses multi-column layout, the gap between columns should be consistent.
+- **Column left-edge drift.** On any document using a rail or two-column layout, the right column's left edge must be at the same x-coordinate on every page. A gap variation of even 8–12px is visible when pages are compared side-by-side. Explicit check: look at the first line of right-column body text across all body pages — if the text starts at a noticeably different horizontal position on any page, it is Tier 2 (Tier 1 if the document uses left-aligned headings that make the misalignment immediately apparent). This check applies in Quick Pass — it does not require cross-page diffing, just noting the right-column x-position while passing through each page. Source smell: mixed `gap` values on the same component class — some pages using the CSS default, others overriding inline with `gap: Npx !important`. The fix is to remove all inline gap overrides and standardise on the CSS class value.
 
 ## Tier 4 (report-specific) — brand & finish
 

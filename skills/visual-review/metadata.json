@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "organization": "Document QA",
   "date": "May 2026",
-  "abstract": "Two-mode (Quick Pass / Full Review) visual inspection skill. Renders PDFs and HTML, produces action-first reports (HOLD/FIX IF TIME/NOTE), detects clipping, overlaps, font fallback, density imbalance, and brand drift. Includes type-specific checks for slides, books, and reports."
+  "abstract": "Two-mode (Quick Pass / Full Review) visual inspection skill. Renders PDFs and HTML at 300 DPI, produces action-first reports (HOLD/FIX IF TIME/NOTE), detects clipping, overlaps, font fallback, density imbalance, and brand drift. Includes 8 mandatory bottom-edge checks, Paged.js-specific structural patterns (orphan borders, footer collisions, flowing section overflow), form-aware checks, and type-specific checks for slides, books, and reports."
 }
