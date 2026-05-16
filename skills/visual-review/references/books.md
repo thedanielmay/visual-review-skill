@@ -60,9 +60,45 @@ These are quality-of-reading issues. They don't break the book but they make it 
 - Front matter with non-Arabic page numbers (i, ii, iii) — convention.
 - A chapter starting partway down a page if the design specifies "no chapter break, just a heading" — confirm with the user before flagging.
 
+## Commercial press handoff checklist
+
+Use this when the document is going to a commercial offset printer (not KDP/POD). POD platforms (KDP, IngramSpark) have their own prepress workflows and are more forgiving; commercial offset press requires all items below to be explicitly confirmed.
+
+This checklist does not make a file press-ready — it identifies what must be confirmed before delivery. A prepress professional or print buyer should validate the final file.
+
+**1. Page geometry**
+- [ ] **TrimBox** set to the final trim size (e.g. 210×297mm for A4). Not the same as the MediaBox (which includes bleed).
+- [ ] **BleedBox** set at 3mm (EU standard) or 0.125in (US standard) outside the TrimBox on all four sides where full-bleed art exists. 5mm for perfect-bound covers.
+- [ ] **Crop marks** present and offset outside the bleed area (not cutting through it).
+- [ ] Confirm trim size with the printer — reject non-standard sizes before building.
+
+**2. Colour**
+- [ ] **ICC OutputIntent** embedded and matching the press condition. Ask the printer for their profile: common choices are FOGRA51 (coated EU), FOGRA39 (coated EU older presses), PSO Uncoated v3 (uncoated EU), GRACoL 2006 (US coated), SWOP v2 (US publications).
+- [ ] **Total Area Coverage (TAC)** within the printer's limit. Typical: ≤300% coated, ≤260% uncoated. Rich black (`C:60 M:40 Y:40 K:100`) at 240% is safe; 4-colour black at 400% is not.
+- [ ] **Overprint** behaviour verified. Black text should overprint (not knock out). Verify in Acrobat's Overprint Preview or Separations Preview. A white object incorrectly set to overprint disappears on press.
+- [ ] **Spot colours** named exactly to the printer's ink library. "PANTONE 485 C" and "Pantone 485 C" are treated as different inks by RIP software. Confirm naming with the printer before delivery.
+- [ ] **Images** in CMYK or greyscale (not RGB) for a CMYK press. RGB images will be converted by the RIP, often incorrectly.
+
+**3. Fonts**
+- [ ] All fonts embedded and subsetted in the PDF. Check via `pdffonts` — every font must show `emb: yes`.
+- [ ] No Type 3 fonts (bitmapped, not scalable). These are rejected by most presses.
+
+**4. Images**
+- [ ] Raster image resolution: minimum 300 DPI at final print size. 600 DPI for fine line art (logos, diagrams).
+- [ ] No JPEG compression artefacts visible at 100% zoom — these print.
+
+**5. PDF/X conformance (if required by printer)**
+- [ ] Confirm which spec the printer requires: PDF/X-1a (2001, CMYK only, no live transparency), PDF/X-3 (2002), or PDF/X-4 (2010, supports live transparency — current standard for most EU printers).
+- [ ] PDF/X-1a flattens all transparency to CMYK at a specified resolution — drop shadows and gradients are rasterised at flatten boundaries. Verify flatten results visually.
+- [ ] Note: any HTML-to-PDF tool's output can be post-processed to PDF/X-4 via Ghostscript. "Prince is required for PDF/X" is false.
+
+**6. Prepress review**
+- [ ] Send a digital proof (softproof) to the printer for approval before committing to a full run.
+- [ ] Request a hard proof (Epson contract proof or similar) for colour-critical work.
+
 ## What to ask the user before reviewing a book
 
-- "Is this for print (KDP, IngramSpark, etc.) or digital-only (PDF, EPUB)?" Determines whether bleed/safe-area/gutter checks apply.
+- "Is this for print (KDP, IngramSpark, commercial press) or digital-only (PDF, EPUB)?" Determines whether bleed/safe-area/gutter checks and the commercial press checklist apply.
 - "What's the trim size?" Confirms what to expect from `metadata.json`.
 - "Is the cover in scope, or just the interior?"
 
