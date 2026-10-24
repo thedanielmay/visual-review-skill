@@ -1,0 +1,141 @@
+{
+  "skill_name": "visual-review",
+  "evals": [
+    {
+      "id": 1,
+      "name": "raising-orchids-jodie-review",
+      "prompt": "Review this PDF for visual glitches and issues that would embarrass me if I shipped it as-is: /Users/thedanielmay/projects/raising-orchids/docs/superpowers/pdfs/raising-orchids-jodie-review.pdf\n\nProduce a tiered report (Tier 1 ship-blockers first) with page numbers, regions, confidence labels, and suggested fixes. Save the report and any cropped findings to a clearly-named directory you create.",
+      "expected_output": "Tiered markdown report with Tier 1 findings (clipping, overlap, missing images, font fallback) prioritised first, plus Tier 2/3 findings. Cross-page consistency observations included. Cropped finding images saved.",
+      "files": ["/Users/thedanielmay/projects/raising-orchids/docs/superpowers/pdfs/raising-orchids-jodie-review.pdf"],
+      "assertions": [
+        {"type": "section_present", "value": "HOLD"},
+        {"type": "contains", "value": "Page:"},
+        {"type": "contains", "value": "Confidence:"},
+        {"type": "contains", "value": "Suggested fix:"},
+        {"type": "contains", "value": "BEYOND VISUAL"},
+        {"type": "not_contains", "value": "I cannot visually review"},
+        {"type": "not_contains", "value": "TEXT-ONLY PASS"},
+        {"type": "min_findings", "count": 3},
+        {"type": "regex", "value": "Confidence: (confident|likely|possible)"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "raising-orchids-brand-guidelines",
+      "prompt": "Review this PDF for visual glitches and issues that would embarrass me if I shipped it as-is: /Users/thedanielmay/projects/raising-orchids/branding/brand-guidelines.pdf\n\nProduce a tiered report (Tier 1 ship-blockers first) with page numbers, regions, confidence labels, and suggested fixes. Save the report and any cropped findings to a clearly-named directory you create.",
+      "expected_output": "Tiered markdown report. This is a brand guidelines doc — special attention to type specimens, colour swatches, logo usage examples being correctly rendered.",
+      "files": ["/Users/thedanielmay/projects/raising-orchids/branding/brand-guidelines.pdf"],
+      "assertions": [
+        {"type": "section_present", "value": "HOLD"},
+        {"type": "contains", "value": "Page:"},
+        {"type": "contains", "value": "Confidence:"},
+        {"type": "contains", "value": "Suggested fix:"},
+        {"type": "not_contains", "value": "I cannot visually review"},
+        {"type": "min_findings", "count": 2},
+        {"type": "regex", "value": "Confidence: (confident|likely|possible)"},
+        {"type": "contains", "value": "TYPE-SPECIFIC CHECKS"}
+      ]
+    },
+    {
+      "id": 3,
+      "name": "raising-orchids-template-v2",
+      "prompt": "Review this PDF for visual glitches and issues that would embarrass me if I shipped it as-is: /Users/thedanielmay/projects/raising-orchids/branding/raising-orchids-template-v2.pdf\n\nProduce a tiered report (Tier 1 ship-blockers first) with page numbers, regions, confidence labels, and suggested fixes. Save the report and any cropped findings to a clearly-named directory you create.",
+      "expected_output": "Tiered markdown report. This is a template — check it for placeholder text leakage, unfilled fields, and consistency that the template establishes.",
+      "files": ["/Users/thedanielmay/projects/raising-orchids/branding/raising-orchids-template-v2.pdf"],
+      "assertions": [
+        {"type": "section_present", "value": "HOLD"},
+        {"type": "contains", "value": "Page:"},
+        {"type": "contains", "value": "Confidence:"},
+        {"type": "contains", "value": "Suggested fix:"},
+        {"type": "not_contains", "value": "I cannot visually review"},
+        {"type": "min_findings", "count": 2},
+        {"type": "regex", "value": "Confidence: (confident|likely|possible)"}
+      ]
+    },
+    {
+      "id": 4,
+      "name": "ec-demo-product-overview",
+      "prompt": "Review this PDF for visual glitches and issues that would embarrass me if I shipped it as-is: /Users/thedanielmay/Library/CloudStorage/GoogleDrive-daniel@thedanielmay.com/Shared drives/dan life/ec-demo-2/product/product-overview.pdf\n\nProduce a tiered report (Tier 1 ship-blockers first) with page numbers, regions, confidence labels, and suggested fixes. Save the report and any cropped findings to a clearly-named directory you create.",
+      "expected_output": "Tiered markdown report. Product-overview document — likely a slide deck or marketing piece. Apply slides reference if appropriate.",
+      "files": ["/Users/thedanielmay/Library/CloudStorage/GoogleDrive-daniel@thedanielmay.com/Shared drives/dan life/ec-demo-2/product/product-overview.pdf"],
+      "assertions": [
+        {"type": "section_present", "value": "HOLD"},
+        {"type": "contains", "value": "Page:"},
+        {"type": "contains", "value": "Confidence:"},
+        {"type": "contains", "value": "Suggested fix:"},
+        {"type": "not_contains", "value": "I cannot visually review"},
+        {"type": "min_findings", "count": 3},
+        {"type": "regex", "value": "Confidence: (confident|likely|possible)"},
+        {"type": "contains", "value": "Mode:"}
+      ]
+    },
+    {
+      "id": 5,
+      "name": "fa-identification-guide",
+      "prompt": "Review this PDF for visual glitches and issues that would embarrass me if I shipped it as-is: /Users/thedanielmay/Library/CloudStorage/GoogleDrive-daniel@thedanielmay.com/Shared drives/dan life/FA dating/docs/guides/fa-identification-guide.pdf\n\nProduce a tiered report (Tier 1 ship-blockers first) with page numbers, regions, confidence labels, and suggested fixes. Save the report and any cropped findings to a clearly-named directory you create.",
+      "expected_output": "Tiered markdown report. Identification guide — likely image-heavy. Check image quality (DPI), captioning consistency, image-to-text alignment.",
+      "files": ["/Users/thedanielmay/Library/CloudStorage/GoogleDrive-daniel@thedanielmay.com/Shared drives/dan life/FA dating/docs/guides/fa-identification-guide.pdf"],
+      "assertions": [
+        {"type": "section_present", "value": "HOLD"},
+        {"type": "contains", "value": "Page:"},
+        {"type": "contains", "value": "Confidence:"},
+        {"type": "contains", "value": "Suggested fix:"},
+        {"type": "not_contains", "value": "I cannot visually review"},
+        {"type": "min_findings", "count": 2},
+        {"type": "regex", "value": "Confidence: (confident|likely|possible)"}
+      ]
+    },
+    {
+      "id": 6,
+      "name": "fa-business-requirements",
+      "prompt": "Review this PDF for visual glitches and issues that would embarrass me if I shipped it as-is: /Users/thedanielmay/Library/CloudStorage/GoogleDrive-daniel@thedanielmay.com/Shared drives/dan life/FA dating/docs/business-requirements-v1.6.1.pdf\n\nProduce a tiered report (Tier 1 ship-blockers first) with page numbers, regions, confidence labels, and suggested fixes. Save the report and any cropped findings to a clearly-named directory you create.",
+      "expected_output": "Tiered markdown report. Business requirements doc — apply reports reference. Check version-number consistency (cover vs footer), TOC accuracy, section header continuity.",
+      "files": ["/Users/thedanielmay/Library/CloudStorage/GoogleDrive-daniel@thedanielmay.com/Shared drives/dan life/FA dating/docs/business-requirements-v1.6.1.pdf"],
+      "assertions": [
+        {"type": "section_present", "value": "HOLD"},
+        {"type": "contains", "value": "Page:"},
+        {"type": "contains", "value": "Confidence:"},
+        {"type": "contains", "value": "Suggested fix:"},
+        {"type": "not_contains", "value": "I cannot visually review"},
+        {"type": "min_findings", "count": 3},
+        {"type": "regex", "value": "Confidence: (confident|likely|possible)"},
+        {"type": "contains", "value": "TYPE-SPECIFIC CHECKS"}
+      ]
+    },
+    {
+      "id": 7,
+      "name": "consulting-proposal",
+      "prompt": "Review this PDF for visual glitches and issues that would embarrass me if I shipped it as-is: /Users/thedanielmay/Library/CloudStorage/GoogleDrive-daniel@thedanielmay.com/Shared drives/dan life/life/Life and Business Architecture/consulting-proposal.pdf\n\nProduce a tiered report (Tier 1 ship-blockers first) with page numbers, regions, confidence labels, and suggested fixes. Save the report and any cropped findings to a clearly-named directory you create.",
+      "expected_output": "Tiered markdown report. Consulting proposal — apply reports reference, with extra attention to client-facing details: pricing clarity, currency consistency, signature block, validity dates.",
+      "files": ["/Users/thedanielmay/Library/CloudStorage/GoogleDrive-daniel@thedanielmay.com/Shared drives/dan life/life/Life and Business Architecture/consulting-proposal.pdf"],
+      "assertions": [
+        {"type": "section_present", "value": "HOLD"},
+        {"type": "contains", "value": "Page:"},
+        {"type": "contains", "value": "Confidence:"},
+        {"type": "contains", "value": "Suggested fix:"},
+        {"type": "not_contains", "value": "I cannot visually review"},
+        {"type": "min_findings", "count": 3},
+        {"type": "regex", "value": "Confidence: (confident|likely|possible)"},
+        {"type": "contains", "value": "TYPE-SPECIFIC CHECKS"},
+        {"type": "contains", "value": "Context declared:"}
+      ]
+    },
+    {
+      "id": 8,
+      "name": "life-revenue-architecture-plan",
+      "prompt": "Review this PDF for visual glitches and issues that would embarrass me if I shipped it as-is: /Users/thedanielmay/Library/CloudStorage/GoogleDrive-daniel@thedanielmay.com/Shared drives/dan life/life/Life and Business Architecture/Daniel May - Life & Revenue Architecture Plan.pdf\n\nProduce a tiered report (Tier 1 ship-blockers first) with page numbers, regions, confidence labels, and suggested fixes. Save the report and any cropped findings to a clearly-named directory you create.",
+      "expected_output": "Tiered markdown report. Architecture plan — multi-page report. Apply reports reference. Check structural elements (TOC, section continuity, header/footer consistency).",
+      "files": ["/Users/thedanielmay/Library/CloudStorage/GoogleDrive-daniel@thedanielmay.com/Shared drives/dan life/life/Life and Business Architecture/Daniel May - Life & Revenue Architecture Plan.pdf"],
+      "assertions": [
+        {"type": "section_present", "value": "HOLD"},
+        {"type": "contains", "value": "Page:"},
+        {"type": "contains", "value": "Confidence:"},
+        {"type": "contains", "value": "Suggested fix:"},
+        {"type": "not_contains", "value": "I cannot visually review"},
+        {"type": "min_findings", "count": 3},
+        {"type": "regex", "value": "Confidence: (confident|likely|possible)"},
+        {"type": "contains", "value": "CROSS-PAGE DRIFT"}
+      ]
+    }
+  ]
+}
