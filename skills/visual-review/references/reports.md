@@ -26,6 +26,8 @@ Reports rarely use bleed (no edge-to-edge ink), so bleed/safe-area is not a Tier
 
 ## Tier 2 (report-specific) — typography & content
 
+- **Sub-heading wrap in narrow columns.** In two-column layouts, small-caps or uppercase sub-headings (`.doc-h3`, `h4`, or equivalent) with wide letter-spacing can wrap to a second line inside a ~80mm column even when they look fine at full-page preview scale. The wrap is only visible at reading zoom. **Mandatory check**: when a document uses a two-column body, scan every sub-heading in the left and right columns individually for line-wrap. A wrapping uppercase sub-heading with normal top-margin above it creates a visually enlarged gap that reads as a layout defect. Confidence: `likely` if column width ≤ 85mm and any heading is ≥ 40 characters after letter-spacing is applied (rough rule: char count × font-size-pt × 0.6 × (1 + letter-spacing-em) > column-width-pt). Fix: shorten heading text, reduce letter-spacing on the heading class, or increase font-size to reduce effective character density.
+
 - **Heading hierarchy compliance.** H1 → H2 → H3 should not skip levels (no H1 followed directly by H3). Surface skips as `likely` Tier 2.
 - **Numbering consistency.** Section numbering (1, 1.1, 1.2, 2, 2.1) must be continuous, no gaps. Numbered lists within the same section restart cleanly.
 - **Caption presence.** Figures and tables should have captions. A figure without a caption is `likely` an oversight.
