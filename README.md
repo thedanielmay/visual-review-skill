@@ -63,10 +63,9 @@ or let it trigger automatically when you produce a rendered document.
 ## What's inside
 
 ```
-SKILL.md                              STALE, loaded by nothing, do not edit (old 2.0.0 root copy)
 .claude-plugin/plugin.json            Plugin manifest (name, version, author, keywords)
 skills/visual-review/
-  SKILL.md                            THE skill: this is the file ~/.claude/skills/visual-review resolves to
+  SKILL.md                            THE skill: the only copy, and the file ~/.claude/skills/visual-review resolves to
   references/
     slides.md                         Slide-deck type-specific checks
     books.md                          Book/manuscript checks (KDP, print, bleed/safe area)
@@ -80,7 +79,9 @@ skills/visual-review/
 
 ## Status
 
-**v2.1.0** — in the repo and live via the symlink, but NOT published: the root `SKILL.md` merge has to land first. The marketplace still serves 2.0.0. Changelog:
+**v2.1.1** — live via the symlink. The stale v1.1.0 root `SKILL.md` was removed, so the repo finally has one copy. Not yet published; the marketplace still serves 2.0.0. Changelog:
+
+- **v2.1.1** — removed the stale root `SKILL.md` (v1.1.0, superseded by the v2.0.0 restructure)
 
 - **v2.1.0** — sub-heading wrap check, `evals/evals.json`, version fields on `SKILL.md` / `plugin.json` / `metadata.json`
 - **v2.0.0** — stack assessment integration, expert-panel fixes, commercial press-readiness checklist

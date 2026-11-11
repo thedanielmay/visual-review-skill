@@ -1,7 +1,22 @@
 {
   "name": "visual-review",
-  "description": "Visual QA skill — renders PDFs and HTML at 300 DPI, runs Quick Pass or Full Review, produces action-first HOLD/FIX IF TIME/NOTE reports covering clipping, overlaps, font fallback, density imbalance, typography, and brand drift. Includes 8 mandatory bottom-edge checks, Paged.js structural patterns, form-aware checks, type-specific checks for slides/books/reports, commercial press-readiness checklist, and conditional stack assessment (surfaces only on CVE, traceable bug, or explicit request).",
-  "version": "2.1.0",
-  "author": { "name": "Daniel May", "email": "daniel@thedanielmay.com" },
-  "keywords": ["visual-review", "pdf", "slides", "document-qa", "design-review", "typography", "layout", "paged.js", "overflow", "print-production", "stack-assessment"]
+  "description": "Visual QA skill \u2014 renders PDFs and HTML at 300 DPI, runs Quick Pass or Full Review, produces action-first HOLD/FIX IF TIME/NOTE reports covering clipping, overlaps, font fallback, density imbalance, typography, and brand drift. Includes 8 mandatory bottom-edge checks, Paged.js structural patterns, form-aware checks, type-specific checks for slides/books/reports, commercial press-readiness checklist, and conditional stack assessment (surfaces only on CVE, traceable bug, or explicit request).",
+  "version": "2.1.1",
+  "author": {
+    "name": "Daniel May",
+    "email": "daniel@thedanielmay.com"
+  },
+  "keywords": [
+    "visual-review",
+    "pdf",
+    "slides",
+    "document-qa",
+    "design-review",
+    "typography",
+    "layout",
+    "paged.js",
+    "overflow",
+    "print-production",
+    "stack-assessment"
+  ]
 }

@@ -2,8 +2,8 @@
 name: visual-review
 description: Use when the user asks to QA, review, proof, or visually inspect a rendered document — PDFs, slide decks, books, reports, brochures, or HTML pages. Triggers on phrases like "check this PDF for glitches," "review my deck," "proof this report," "is this ready to send?", "visual QA," "does this look right?", or any time the user produces a rendered artefact and wants someone to look at it carefully. Catches clipped content, overflow, broken layout, typographic problems (orphans, hyphenation, dash policy), brand drift, and consistency issues across pages. Use proactively after the user generates or modifies a PDF/deck/report, even if they don't explicitly request review.
 metadata:
-  version: "2.1.0"
-  updated: "Wed 11 Nov 2026, sub-heading wrap check and evals brought in; duplicate root SKILL.md still to be merged, do not edit it"
+  version: "2.1.1"
+  updated: "Wed 11 Nov 2026, stale v1.1.0 root SKILL.md deleted; this is now the only copy"
 ---
 
 # Visual Review
