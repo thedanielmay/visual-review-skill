@@ -74,6 +74,8 @@ skills/visual-review/
     house-rules.md                    Style rules applied in Phase 7 mechanical fixes
     confidence-rubric.md              Full confidence labelling guide (confident/likely/possible)
     pagedjs.md                        Paged.js structural patterns and known footguns
+  evals/
+    evals.json                        Test cases for the skill's own behaviour
 ```
 
 ## Status
