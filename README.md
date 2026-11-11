@@ -78,8 +78,9 @@ skills/visual-review/
 
 ## Status
 
-**v2.0.0** — active, in use. Changelog:
+**v2.1.0** — in the repo and live via the symlink, but NOT published: the root `SKILL.md` merge has to land first. The marketplace still serves 2.0.0. Changelog:
 
+- **v2.1.0** — sub-heading wrap check, `evals/evals.json`, version fields on `SKILL.md` / `plugin.json` / `metadata.json`
 - **v2.0.0** — stack assessment integration, expert-panel fixes, commercial press-readiness checklist
 - **v1.1.0** — expanded checks, 300 DPI mandate, Paged.js structural patterns
 - **v1.0.0** — initial release
