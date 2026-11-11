@@ -63,10 +63,10 @@ or let it trigger automatically when you produce a rendered document.
 ## What's inside
 
 ```
-SKILL.md                              Top-level skill definition (frontmatter + full workflow)
+SKILL.md                              STALE, loaded by nothing, do not edit (old 2.0.0 root copy)
 .claude-plugin/plugin.json            Plugin manifest (name, version, author, keywords)
 skills/visual-review/
-  SKILL.md                            Skill entrypoint (mirrors root SKILL.md)
+  SKILL.md                            THE skill: this is the file ~/.claude/skills/visual-review resolves to
   references/
     slides.md                         Slide-deck type-specific checks
     books.md                          Book/manuscript checks (KDP, print, bleed/safe area)
