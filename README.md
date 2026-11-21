@@ -8,8 +8,6 @@ A Claude Code skill that performs visual QA on rendered documents — catching l
 
 The skill runs in two modes: **Quick Pass** (Phases 0–3 + 8–9, ~5–10 min for ≤20 pages, the default) and **Full Review** (all phases, requires editable source + shell access, ~30–60 min). When no rendering environment is available it falls back to a labelled text-only pass covering content issues only.
 
-Version 2.0.0 adds a press-readiness checklist, Paged.js structural pattern detection, form-aware checks, and conditional stack assessment.
-
 ## When to use it / Triggers
 
 Invoke this skill whenever you want to visually inspect a rendered artefact:
@@ -48,9 +46,19 @@ The skill also understands document type: slide decks, books/manuscripts, and mu
 - HTML fallback: Playwright + Chromium
 - Phase 0 checks both and declares the render method before any work begins
 
-## Installation
+## Install
 
-This is a Claude Code plugin. Install via the Claude Code plugin registry or by cloning this repo and referencing the plugin manifest at `.claude-plugin/plugin.json`.
+Install from the marketplace in this repo:
+
+```
+/plugin install visual-review --marketplace thedanielmay/visual-review-skill
+```
+
+Or link a local checkout into your skills folder:
+
+```
+ln -s ~/projects/agent-tools/skills/visual-review-skill/skills/visual-review ~/.claude/skills/visual-review
+```
 
 Once installed, invoke the skill with:
 
@@ -79,13 +87,6 @@ skills/visual-review/
 
 ## Status
 
-**v2.1.1** — live via the symlink. The stale v1.1.0 root `SKILL.md` was removed, so the repo finally has one copy. Not yet published; the marketplace still serves 2.0.0. Changelog:
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each release. The current version is in `.claude-plugin/plugin.json`.
 
-- **v2.1.1** — removed the stale root `SKILL.md` (v1.1.0, superseded by the v2.0.0 restructure)
-
-- **v2.1.0** — sub-heading wrap check, `evals/evals.json`, version fields on `SKILL.md` / `plugin.json` / `metadata.json`
-- **v2.0.0** — stack assessment integration, expert-panel fixes, commercial press-readiness checklist
-- **v1.1.0** — expanded checks, 300 DPI mandate, Paged.js structural patterns
-- **v1.0.0** — initial release
-
-Author: Daniel May (`email-removed@example.com`)
+Author: Daniel May
