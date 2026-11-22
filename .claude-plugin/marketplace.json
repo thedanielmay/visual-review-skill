@@ -4,6 +4,9 @@
     "name": "Daniel May",
     "url": "https://github.com/thedanielmay"
   },
+  "metadata": {
+    "description": "Visual QA for rendered documents. Renders PDFs and HTML at 300 DPI and reports clipping, overlap, font fallback and brand drift as HOLD, FIX IF TIME and NOTE items."
+  },
   "plugins": [
     {
       "name": "visual-review",
