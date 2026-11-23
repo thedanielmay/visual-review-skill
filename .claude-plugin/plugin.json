@@ -1,6 +1,6 @@
 {
   "name": "visual-review",
-  "version": "2.1.4",
+  "version": "2.2.0",
   "description": "Visual QA for rendered documents. Renders PDFs and HTML at 300 DPI and reports clipping, overlap, font fallback and brand drift as HOLD, FIX IF TIME and NOTE items.",
   "author": {
     "name": "Daniel May",
