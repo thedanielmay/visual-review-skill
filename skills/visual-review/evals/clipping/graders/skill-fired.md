@@ -1,0 +1,6 @@
+---
+type: tool_used
+tool: Skill
+input_match: '"skill"\s*:\s*"(?:[\w-]+:)?visual-review"'
+---
+The visual-review skill produced the report.

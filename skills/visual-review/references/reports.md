@@ -6,49 +6,49 @@ The universal Tier 1-3 checklist in SKILL.md still applies. This file adds repor
 
 ## Page geometry assumptions
 
-Default assumed page sizes for reports (override from `metadata.json`):
+Default assumed page sizes for reports (override from `metadata.txt`):
 - A4 portrait: 210×297mm (most common outside US)
 - US Letter portrait: 216×279mm (US default)
 - A4 landscape: 297×210mm (data-heavy reports, dashboards)
 
 Reports rarely use bleed (no edge-to-edge ink), so bleed/safe-area is not a Tier 1 concern unless the cover is in scope.
 
-## Tier 1 (report-specific) — ship-blockers
+## Tier 1 (report-specific), ship-blockers
 
-- **Cover page integrity.** Title, subtitle, client name, date, version — all rendered, none clipped, none mis-merged from a template.
-- **TOC accuracy.** Section titles and page numbers in the TOC match the actual section titles and pages in the body. A TOC pointing to "page 14" when the section is on page 16 is Tier 1 — readers will lose trust immediately.
-- **Section header continuity.** Every major section starts with the same heading style. If section 3 has a different style from sections 1, 2, 4, that's Tier 1.
-- **Running header/footer continuity.** Running headers (typically section title or document title) should appear on every body page, formatted consistently. Missing headers on individual pages = Tier 1.
-- **Page number continuity.** No skipped or duplicated page numbers. Front matter (cover, TOC, executive summary) may use Roman numerals; body uses Arabic. Both must be continuous within their range.
+- **Cover page integrity.** Title, subtitle, client name, date, version, all rendered, none clipped, none mis-merged from a template.
+- **TOC accuracy.** Section titles and page numbers in the TOC match the actual section titles and pages in the body. A TOC pointing to "page 14" when the section is on page 16 is Tier 1, readers will lose trust immediately.
+- **Section header continuity.** Every major section starts with the same heading style. If section 3 has a different style from sections 1, 2, 4, that is Tier 1.
+- **Running header/footer continuity.** Running headers (typically section title or document title) must appear on every body page, formatted consistently. Missing headers on individual pages = Tier 1.
+- **Page number continuity.** No skipped or duplicated page numbers. Front matter (cover, TOC, executive summary) can use Roman numerals; body uses Arabic. Both must be continuous within their range.
 - **Cross-references resolve.** "See section 3.2 on page 14" must point to the right page. "See Figure 5" must point to a figure that exists and is labelled "Figure 5".
-- **Versioning visibility.** Version number (e.g. "v1.6.1") should appear on the cover and in the footer of every body page. Mismatch between cover version and footer version = Tier 1.
+- **Versioning visibility.** Version number (e.g. "v1.6.1") must appear on the cover and in the footer of every body page. Mismatch between cover version and footer version = Tier 1.
 - **Confidentiality / classification banners.** If the document is marked "Confidential" or "For internal use only", every page must carry that mark. Missing on any page = Tier 1.
 
-## Tier 2 (report-specific) — typography & content
+## Tier 2 (report-specific), typography & content
 
-- **Sub-heading wrap in narrow columns.** In two-column layouts, small-caps or uppercase sub-headings (`.doc-h3`, `h4`, or equivalent) with wide letter-spacing can wrap to a second line inside a ~80mm column even when they look fine at full-page preview scale. The wrap is only visible at reading zoom. **Mandatory check**: when a document uses a two-column body, scan every sub-heading in the left and right columns individually for line-wrap. A wrapping uppercase sub-heading with normal top-margin above it creates a visually enlarged gap that reads as a layout defect. Confidence: `likely` if column width ≤ 85mm and any heading is ≥ 40 characters after letter-spacing is applied (rough rule: char count × font-size-pt × 0.6 × (1 + letter-spacing-em) > column-width-pt). Fix: shorten heading text, reduce letter-spacing on the heading class, or increase font-size to reduce effective character density.
+- **Sub-heading wrap in narrow columns.** In two-column layouts, small-caps or uppercase sub-headings (a small-caps or uppercase heading style) with wide letter-spacing can wrap to a second line inside a ~80mm column even when they look fine at full-page preview scale. The wrap is only visible at reading zoom. **Mandatory check**: when a document uses a two-column body, scan every sub-heading in the left and right columns individually for line-wrap. A wrapping uppercase sub-heading with normal top-margin above it creates a visually enlarged gap that reads as a layout defect. Confidence: `likely` if column width ≤ 85mm and any heading is ≥ 40 characters after letter-spacing is applied (rough rule: char count × font-size-pt × 0.6 × (1 + letter-spacing-em) > column-width-pt). Fix: shorten heading text, reduce letter-spacing on the heading class, or increase font-size to reduce effective character density.
 
-- **Heading hierarchy compliance.** H1 → H2 → H3 should not skip levels (no H1 followed directly by H3). Surface skips as `likely` Tier 2.
+- **Heading hierarchy compliance.** H1 → H2 → H3 must not skip levels (no H1 followed directly by H3). Surface skips as `likely` Tier 2.
 - **Numbering consistency.** Section numbering (1, 1.1, 1.2, 2, 2.1) must be continuous, no gaps. Numbered lists within the same section restart cleanly.
-- **Caption presence.** Figures and tables should have captions. A figure without a caption is `likely` an oversight.
-- **Footnote/endnote consistency.** All footnotes use the same numbering scheme (continuous through document, or restart per page/section — pick one). Footnote markers in body match notes at page bottom.
-- **Pull-quote treatment consistency.** If the document uses pull quotes, they should all be styled identically.
-- **Date format consistency.** All dates in the document should follow the same format (per house-rules.md: `4 May 2026` for prose, ISO for machine).
+- **Caption presence.** Figures and tables must have captions. A figure without a caption is `likely` an oversight.
+- **Footnote/endnote consistency.** All footnotes use the same numbering scheme (continuous through document, or restart per page/section, pick one). Footnote markers in body match notes at page bottom.
+- **Pull-quote treatment consistency.** If the document uses pull quotes, they must all be styled identically.
+- **Date format consistency.** All dates in the document must follow one format. Flag a mix of ISO and human readable dates.
 
-## Tier 3 (report-specific) — layout & rhythm
+## Tier 3 (report-specific), layout & rhythm
 
 - **Section-opening consistency.** Every section starts with the same vertical position, same heading treatment, same spacing before first body paragraph.
-- **Sidebar/callout consistency.** If the document uses sidebars or pull-out callouts, they should all be styled consistently and positioned consistently.
-- **Image scaling consistency.** Images should fit a small number of standard sizes (e.g. half-width, full-width, full-bleed). Random scaling looks amateur.
+- **Sidebar/callout consistency.** If the document uses sidebars or pull-out callouts, they must all be styled consistently and positioned consistently.
+- **Image scaling consistency.** Images must fit a small number of standard sizes (e.g. half-width, full-width, full-bleed). Random scaling looks amateur.
 - **Table styling consistency.** All tables use the same header style, same row banding (or none), same border treatment.
-- **Column left-edge drift.** On any document using a rail or two-column layout, the right column's left edge must be at the same x-coordinate on every page. A gap variation of even 8–12px is visible when pages are compared side-by-side. Explicit check: look at the first line of right-column body text across all body pages — if the text starts at a noticeably different horizontal position on any page, it is Tier 2 (Tier 1 if the document uses left-aligned headings that make the misalignment immediately apparent). This check applies in Quick Pass — it does not require cross-page diffing, just noting the right-column x-position while passing through each page. Source smell: mixed `gap` values on the same component class — some pages using the CSS default, others overriding inline with `gap: Npx !important`. The fix is to remove all inline gap overrides and standardise on the CSS class value.
+- **Column left-edge drift.** On any document using a rail or two-column layout, the right column's left edge must be at the same x-coordinate on every page. A gap variation of even 8-12px is visible when pages are compared side-by-side. Explicit check: look at the first line of right-column body text across all body pages, if the text starts at a noticeably different horizontal position on any page, it is Tier 2 (Tier 1 if the document uses left-aligned headings that make the misalignment immediately apparent). This check applies in Quick Pass, it does not require cross-page diffing, just noting the right-column x-position while passing through each page. Source smell: mixed `gap` values on the same component class, some pages using the CSS default, others overriding inline with `gap: Npx !important`. The fix is to remove all inline gap overrides and standardise on the CSS class value.
 
-## Tier 4 (report-specific) — brand & finish
+## Tier 4 (report-specific), brand & finish
 
-- **Logo on every page** (or wherever the brand template specifies — match the template).
-- **Colour palette compliance.** Charts and graphs should use the brand palette. Surface any chart colour not in the palette as `likely` drift.
-- **Chart type consistency.** If three financial charts are bar charts and a fourth is a pie chart, surface as `possible` — might be intentional, often isn't.
-- **Image treatment consistency.** If photos throughout have a particular treatment (B&W, duotone, full colour with subtle border), every photo should follow.
+- **Logo on every page** (or wherever the brand template specifies, match the template).
+- **Colour palette compliance.** Charts and graphs must use the brand palette. Surface any chart colour not in the palette as `likely` drift.
+- **Chart type consistency.** If three financial charts are bar charts and a fourth is a pie chart, surface as `possible`, can be intentional, often is not.
+- **Image treatment consistency.** If photos throughout have a particular treatment (B&W, duotone, full colour with subtle border), every photo must follow.
 - **Whitespace policy compliance.** If the brand template specifies generous whitespace, cramped pages stand out. Vice versa.
 
 ## Specific to proposals (subset of reports)
@@ -56,22 +56,22 @@ Reports rarely use bleed (no edge-to-edge ink), so bleed/safe-area is not a Tier
 If the document is a client-facing proposal:
 
 - **Client name correctness.** Search for the client's name throughout. A misspelling on page 1 is fine; a misspelling on page 14 is embarrassing. Surface every variant found.
-- **Pricing block clarity.** Pricing should never be ambiguous. Surface pricing tables/blocks as `confident` if any number is hard to read, mis-aligned, or could be confused.
-- **Currency consistency.** Per house-rules.md: AUD by default, explicit currency code if non-AUD. Mixed currencies in the same proposal without labels = Tier 1.
+- **Pricing block clarity.** Pricing must never be ambiguous. Surface pricing tables/blocks as `confident` if any number is hard to read, mis-aligned, or can be confused.
+- **Currency consistency.** A proposal must label its currency. Mixed currencies without labels is a HOLD finding.
 - **Signature block presence.** If the proposal expects a signature, the signature block must be present, complete, and on a single page (not split across pages).
-- **Date currency.** "Valid until [date]" — surface as `likely` Tier 2 if the date is in the past or within a week.
+- **Date currency.** "Valid until [date]", surface as `likely` Tier 2 if the date is in the past or within a week.
 
-## Report-specific don't-flag list
+## Report-specific do-not-flag list
 
 - A blank page intentionally inserted to start a section on a recto in a print-bound report.
-- Front-matter pages without page numbers (cover, blank, copyright) — convention.
-- A glossary or index at the back with different layout from body — that's the convention.
-- A formal "[This page intentionally left blank]" marker on a blank page — that's correct, not a glitch.
+- Front-matter pages without page numbers (cover, blank, copyright), convention.
+- A glossary or index at the back with different layout from body, that is the convention.
+- A formal "[This page intentionally left blank]" marker on a blank page, that is correct, not a glitch.
 
 ## What to ask the user before reviewing a report
 
 - "Is this for distribution (formal, client-facing) or internal (draft, working document)?" Determines strictness.
 - "Is there a brand template or previous version I can diff against?"
-- "Are there any sections I should pay special attention to (pricing, scope, terms)?"
+- "Are there any sections I must pay special attention to (pricing, scope, terms)?"
 
-Pick one — usually the first.
+Pick one, usually the first.
