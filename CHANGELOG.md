@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.1 - 2026-11-26
+
+- Numeric ranges in the user's own documents follow their written dash rule. In other documents the en dash stays.
+
 ## 2.2.0 - 2026-11-23
 
 - Cuts SKILL.md under 500 lines. Detail now loads from references only when it applies.
