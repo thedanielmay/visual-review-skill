@@ -1,5 +1,5 @@
 {
-  "version": "2.2.0",
+  "version": "2.2.1",
   "organization": "Document QA",
   "date": "November 2026",
   "abstract": "Two-mode (Quick Pass / Full Review) visual inspection skill. Renders PDFs at 300 DPI with tiled views, uses Read as an image fallback, and reports findings as HOLD, FIX IF TIME and NOTE. Checks cover clipping, overlap, font fallback, density imbalance and brand drift. Checklists load by document type and symptom. Print preflight, confidence scoring, Paged.js patterns and an optional project style file live in references."

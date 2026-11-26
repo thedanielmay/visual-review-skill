@@ -3,7 +3,7 @@ name: visual-review
 description: Use when the user asks to QA, review, proof, or visually inspect a rendered document, PDFs, slide decks, books, reports, brochures, or HTML pages. Triggers on phrases like "check this PDF for glitches," "review my deck," "proof this report," "is this ready to send?", "visual QA," "does this look right?", or any time the user produces a rendered artefact and wants someone to look at it carefully. Catches clipped content, overflow, broken layout, typographic problems (orphans, hyphenation, dash policy), brand drift, and consistency issues across pages. Use proactively after the user generates or modifies a PDF/deck/report.
 license: MIT
 metadata:
-  version: "2.2.0"
+  version: "2.2.1"
 ---
 
 # Visual Review
@@ -332,7 +332,7 @@ Gates:
 - The user must approve the change list before any edit.
 - Quick Pass skips this phase.
 
-**Default dash rule.** Check dash use within the document. If the same role uses em dashes in one place and en dashes or hyphens in another, flag the inconsistency. Never rewrite an en dash in a numeric range. It is correct there. Never rewrite punctuation to match one person's taste.
+**Default dash rule.** Check dash use within the document. If the same role uses em dashes in one place and en dashes or hyphens in another, flag the inconsistency. In another person's document, never rewrite an en dash in a numeric range. It is correct there. In the user's own document, when their written rules ban dashes, propose "to" for the range in the change list. Never rewrite punctuation to match taste that no written rule states.
 
 **Optional project rules.** If the project supplies `HOUSE_RULES.md`, read `references/house-rules.md` for the file format. Apply its rules only after the user approves them. If no such file exists, use the default dash rule only.
 
